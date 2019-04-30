@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>ポケテル - 令和版ポケットベル</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.4/css/bulma.min.css">
+  <link rel="stylesheet" href="/stylesheets/style.css">
+  <link rel="stylesheet" href="/stylesheets/reset.css">
+  <script defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"></script>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+</head>
+<body class="main-bg">
+  <div id="app">
+    <div class="notification" :class="notificationClass" v-if="notificationText">
+      <button class="delete" @click="notificationText = ''"></button>
+      {{notificationText}}
+    </div>
+    <div class="title-column">
+      <img src="/assets/logo.png" alt="" srcset="">
+    </div>
+    <div class="common-column">
+      <h2 class="title">電話から送る</h2>
+      <img src="/assets/how_to_phonecall.png" alt="" srcset="">
+    </div>
+    <div class="common-column">
+      <h2 class="title">非通知で送る</h2>
+      <div class="input-with-label">
+        <div class="hash">#</div>
+        <div class="field">
+          <div class="control">
+            <input id="to_app_in_no" v-model="toInAppPhoneNo" class="input is-medium" type="number" placeholder="送信先">
+          </div>
+        </div>
+      </div>
+      <div class="send-body">
+        <div class="field">
+          <div class="control">
+            <input id="to_app_in_no" v-model="body" class="input is-medium" type="number" placeholder="メッセージ">
+          </div>
+        </div>
+      </div>
+      <a class="button is-medium is-fullwidth is-primary" @click="postMessage()">送信</a>
+      <p class="last-message">92804380425629210443211241125191168039194830291980211468</p>
+    </div>
+  </div>
+
+  <script>
+    const app = new Vue({
+      el: "#app",
+      data: {
+        toInAppPhoneNo: null,
+        body: null,
+        notificationText: "",
+        notificationClass: "is-primary"
+      },
+
+      methods: {
+        async postMessage() {
+          if (!this.toInAppPhoneNo || !this.body) return
+          const res = await axios.post('/api/messages/createFromWeb', {
+            toInAppPhoneNo: this.toInAppPhoneNo,
+            body: this.body,
+            notificationText: ""
+          }).catch(e => {
+            console.log(e.response.data)
+            return { error: e.response.data }
+          })
+
+          if (res.status === 200) {
+            this.toInAppPhoneNo = null
+            this.body = null
+            this.notificationText = '投稿に成功しました!'
+            this.notificationClass = 'is-success'
+          } else {
+            if (res.error.code === '1007') {
+              this.notificationText = 'ユーザーが存在しません'
+              this.notificationClass = 'is-danger'
+            } else if (res.error.code === '1001') {
+              this.notificationText = '送信先は7桁です。相手先の番号を確認してください'
+              this.notificationClass = 'is-danger'
+            } else {
+              this.notificationText = '投稿に失敗しました...'
+              this.notificationClass = 'is-danger'
+            }
+          }
+        }
+      }
+    })
+  </script>
+</body>
+</html>
